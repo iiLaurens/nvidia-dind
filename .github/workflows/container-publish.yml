@@ -23,8 +23,8 @@ jobs:
       matrix:
         include:
         - os_version: "24.04"
-          latest_tag: true
         - os_version: "26.04"
+          latest_tag: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
