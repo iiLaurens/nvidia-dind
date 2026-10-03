@@ -12,7 +12,6 @@ on:
     branches: [ main ]
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 jobs:
   build:
     name: Build and push Ubuntu ${{ matrix.os_version }}
@@ -23,13 +22,15 @@ jobs:
     strategy:
       matrix:
         include:
-        - os_version: "20.04"
-        - os_version: "22.04"
         - os_version: "24.04"
           latest_tag: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Compute lowercase image name
+      id: image
+      run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
     - name: Fetch commit time
       run: echo "COMMIT_TIME_GIT=$(TZ=UTC git show -s --format='%cd' --date=format-local:'%Y%m%d%H%M%S')" >> "$GITHUB_ENV"
@@ -52,7 +53,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
 
     - name: Build and push Ubuntu ${{ matrix.os_version }} container image
       uses: docker/build-push-action@v5
@@ -64,6 +65,6 @@ jobs:
         no-cache: true
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.os_version }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.os_version }}-${{ env.COMMIT_TIME_GIT }}
-          ${{ matrix.latest_tag && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ matrix.os_version }}
+          ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ matrix.os_version }}-${{ env.COMMIT_TIME_GIT }}
+          ${{ matrix.latest_tag && format('{0}/{1}:latest', env.REGISTRY, steps.image.outputs.name) || '' }}
